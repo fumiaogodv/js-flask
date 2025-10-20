@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>Flask JSON 示例</title>
+</head>
+<body>
+  <h1>事件列表</h1>
+  <div id="info"></div>
+
+  <button id="add">添加事件</button>
+  <button id="delect">删除事件</button>
+  <button id="find">查找事件（按照主键)</button>
+  <button id="change">更改事件</button>
+  <div id="new_creat"></div>
+
+  <script>
+    // ---------------- 获取数据库中的事件 ----------------
+    async function loadEvents() {
+      const res = await fetch("/api/events")
+      const data = await res.json()
+
+      const info = document.getElementById("info")
+      info.innerHTML = ""
+      data.forEach(e => {
+        info.innerHTML += `
+          <p>id号：${e.id}<br>
+            标题：${e.title}<br>
+            描述：${e.description || "无"}<br>
+            日期：${e.date || "未设置"}
+          </p>
+        `
+      })
+    }
+
+    loadEvents()
+
+    // ---------------- 添加事件按钮 ----------------
+    const add_info = document.getElementById('add')
+    add_info.addEventListener('click', () => {
+      const div_info = document.getElementById('new_creat')
+      div_info.innerHTML = "" // 清空旧的输入框
+
+      // ---- Title ----
+      const titleLabel = document.createElement('p')
+      titleLabel.textContent = 'title:'
+      const titleInput = document.createElement('input')
+      titleInput.type = 'text'
+
+      // ---- Description ----
+      const descLabel = document.createElement('p')
+      descLabel.textContent = 'description:'
+      const descInput = document.createElement('input')
+      descInput.type = 'text'
+
+      // ---- Date ----
+      const dateLabel = document.createElement('p')
+      dateLabel.textContent = 'date:'
+      const dateInput = document.createElement('input')
+      dateInput.type = 'date'
+
+      // ---- Submit ----
+      const submit = document.createElement('button')
+      submit.type = "button"
+      submit.textContent = "提交"
+
+      // ---- 提交事件 ----
+      submit.addEventListener('click', async (event) => {
+        event.preventDefault()
+
+        const taskData = {
+          title: titleInput.value,
+          description: descInput.value,
+          date: dateInput.value
+        }
+
+        const response = await fetch("/api/events/add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(taskData)
+        })
+
+        if (response.ok) {
+          alert("任务已插入数据库！")
+          div_info.innerHTML = "" // 清空输入框
+          loadEvents() // 重新加载事件列表
+        } else {
+          alert("提交失败！")
+        }
+      })
+
+      div_info.appendChild(titleLabel)
+      div_info.appendChild(titleInput)
+      div_info.appendChild(descLabel)
+      div_info.appendChild(descInput)
+      div_info.appendChild(dateLabel)
+      div_info.appendChild(dateInput)
+      div_info.appendChild(submit)
+    })
+
+    // ✅ 放在最上方（全局）
+let ids = [];
+
+async function loadIds() {
+  try {
+    const res = await fetch("/api/events");
+    const data = await res.json();
+    ids = data.map(item => item.id);//这行完成了将对ids的内容更新，之前的完全消失，放新的东西进去
+    console.log("加载完成:", ids);
+  } catch (err) {
+    console.error("加载失败:", err);
+  }
+}
+
+const delect_info = document.getElementById('delect');
+delect_info.addEventListener('click', () => {
+  const div_info = document.getElementById('new_creat');
+  div_info.innerHTML = ""; // 清空旧的输入框
+
+  loadIds().then(() => {
+    for (let i of ids) {
+      const creat_button = document.createElement('button');
+      creat_button.type = "button";
+      creat_button.textContent = 'id为: ' + i;
+      div_info.appendChild(creat_button);
+
+      creat_button.addEventListener('click', async (event) => {
+        event.preventDefault();
+
+        const response = await fetch("/api/events/delect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: i })
+        });
+
+        const result = await response.json();
+        //alert(result.message || "删除成功");
+
+        creat_button.remove(); // 从页面移除
+        loadEvents();          // 重新加载事件列表
+      });
+    }
+  });
+});
+
+    const check_info = document.getElementById('find');
+check_info.addEventListener('click', () => {
+  const div_info = document.getElementById('new_creat');
+  div_info.innerHTML = "";
+
+  // 创建输入框和按钮
+  const serch_info = document.createElement('input');
+  serch_info.type = "text";
+  serch_info.placeholder = "输入要查找的ID";
+  const submit_button = document.createElement('button');
+  submit_button.type = 'button';
+  submit_button.textContent = "查找";
+
+  div_info.appendChild(serch_info);
+  div_info.appendChild(submit_button);
+
+  submit_button.addEventListener('click', async (event) => {
+    event.preventDefault();
+    const text_info = Number(serch_info.value);
+
+    if (!text_info) {
+      alert("请输入有效的数字 ID");
+      return;
+    }
+
+    // 先检查 id 是否存在（可选）
+    await loadIds();
+    if (!ids.includes(text_info)) {
+      alert("未找到 id 为 " + text_info + " 的数据");
+      return;
+    }
+
+    // ✅ 请求后端查找该 id
+    try {
+      const response = await fetch(`/api/events/find/${text_info}`);
+      if (!response.ok) {
+        alert("查找失败！");
+        return;
+      }
+
+      const data = await response.json();
+
+      // ✅ 清空旧内容并展示查找结果
+      div_info.innerHTML = `
+        <p><strong>ID：</strong>${data.id}</p>
+        <p><strong>标题：</strong>${data.title}</p>
+        <p><strong>描述：</strong>${data.description || "无"}</p>
+        <p><strong>日期：</strong>${data.date || "未设置"}</p>
+      `;
+    } catch (err) {
+      console.error("查找错误:", err);
+      alert("请求出错，请查看控制台。");
+    }
+  });
+});
+
+    const change_info=document.getElementById('change')
+    change_info.addEventListener('click',()=>{
+        const div_info=document.getElementById('new_creat')
+        div_info.innerHTML=""
+
+        //
+        loadIds().then(() => {
+    for (let i of ids) {
+      const creat_button = document.createElement('button');
+      creat_button.type = "button";
+      creat_button.textContent = '修改数据id为: ' + i;
+      div_info.appendChild(creat_button);
+
+      creat_button.addEventListener('click', async (event) => {
+        event.preventDefault();
+
+        const response = await fetch("/api/events/change", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: i })
+        });
+
+        const data = await response.json();
+
+        // ---- Title ----
+      const titleLabel = document.createElement('p')
+      titleLabel.textContent = 'title:'
+      const titleInput = document.createElement('input')
+      titleInput.type = 'text'
+      titleInput.value=data.title
+
+      // ---- Description ----
+      const descLabel = document.createElement('p')
+      descLabel.textContent = 'description:'
+      const descInput = document.createElement('input')
+      descInput.type = 'text'
+      descInput.value=data.description
+
+
+      // ---- Date ----
+      const dateLabel = document.createElement('p')
+      dateLabel.textContent = 'date:'
+      const dateInput = document.createElement('input')
+      dateInput.type = 'date'
+      dateInput.value=data.date
+
+      // ---- Submit ----
+      const submit = document.createElement('button')
+      submit.type = "button"
+      submit.textContent = "提交"
+
+      // ---- 提交事件 ----
+      submit.addEventListener('click', async (event) => {
+
+          event.preventDefault();
+
+        const response1 = await fetch("/api/events/delect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: data.id })
+        });
+
+        const result = await response1.json();
+
+        const taskData = {
+          title: titleInput.value,
+          description: descInput.value,
+          date: dateInput.value
+        }
+
+        const response2 = await fetch("/api/events/add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(taskData)
+        })
+
+        if (response2.ok) {
+          alert("改条数据已经修改！")
+          div_info.innerHTML = "" // 清空输入框
+          loadEvents() // 重新加载事件列表
+        } else {
+          alert("提交失败！")
+        }
+
+        const result_info=await response2.json()
+          text_info=result_info.id
+
+        if (response2.ok && text_info) {
+
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            try {
+                const response3 = await fetch(`/api/events/find/${text_info}`);
+                if (!response3.ok) {
+                    alert("查找失败！");
+                    return;
+                }
+
+                const data = await response3.json();
+
+                // ✅ 清空旧内容并展示查找结果
+                div_info.innerHTML = ` <p>修改后的数据为</p>
+        <p><strong>ID：</strong>${data.id}</p>
+        <p><strong>标题：</strong>${data.title}</p>
+        <p><strong>描述：</strong>${data.description || "无"}</p>
+        <p><strong>日期：</strong>${data.date || "未设置"}</p>
+      `;
+            } catch (err) {
+                console.error("查找错误:", err);
+                alert("请求出错，请查看控制台。");
+            }
+        }
+      }
+
+
+      )
+
+       div_info.appendChild(titleLabel)
+      div_info.appendChild(titleInput)
+      div_info.appendChild(descLabel)
+      div_info.appendChild(descInput)
+      div_info.appendChild(dateLabel)
+      div_info.appendChild(dateInput)
+      div_info.appendChild(submit)
+
+        loadEvents();          // 重新加载事件列表
+      });
+    }
+  });
+    })
+
+  </script>
+</body>
+</html>
