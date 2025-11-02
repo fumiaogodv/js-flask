@@ -17,7 +17,7 @@
   <script>
     // ---------------- 获取数据库中的事件 ----------------
     async function loadEvents() {
-      const res = await fetch("/api/events")
+      const res = await fetch("api/events")
       const data = await res.json()
 
       const info = document.getElementById("info")
@@ -74,7 +74,7 @@
           date: dateInput.value
         }
 
-        const response = await fetch("/api/events/add", {
+        const response = await fetch("api/events/add", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(taskData)
@@ -103,7 +103,7 @@ let ids = [];
 
 async function loadIds() {
   try {
-    const res = await fetch("/api/events");
+    const res = await fetch("api/events");
     const data = await res.json();
     ids = data.map(item => item.id);//这行完成了将对ids的内容更新，之前的完全消失，放新的东西进去
     console.log("加载完成:", ids);
@@ -127,7 +127,7 @@ delect_info.addEventListener('click', () => {
       creat_button.addEventListener('click', async (event) => {
         event.preventDefault();
 
-        const response = await fetch("/api/events/delect", {
+        const response = await fetch("api/events/delect", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: i })
@@ -177,7 +177,7 @@ check_info.addEventListener('click', () => {
 
     // ✅ 请求后端查找该 id
     try {
-      const response = await fetch(`/api/events/find/${text_info}`);
+      const response = await fetch(`api/events/find/${text_info}`);
       if (!response.ok) {
         alert("查找失败！");
         return;
@@ -215,7 +215,7 @@ check_info.addEventListener('click', () => {
       creat_button.addEventListener('click', async (event) => {
         event.preventDefault();
 
-        const response = await fetch("/api/events/change", {
+        const response = await fetch("api/events/change", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: i })
@@ -255,7 +255,7 @@ check_info.addEventListener('click', () => {
 
           event.preventDefault();
 
-        const response1 = await fetch("/api/events/delect", {
+        const response1 = await fetch("api/events/delect", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: data.id })
@@ -269,7 +269,7 @@ check_info.addEventListener('click', () => {
           date: dateInput.value
         }
 
-        const response2 = await fetch("/api/events/add", {
+        const response2 = await fetch("api/events/add", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(taskData)
@@ -291,7 +291,7 @@ check_info.addEventListener('click', () => {
             await new Promise(resolve => setTimeout(resolve, 100));
 
             try {
-                const response3 = await fetch(`/api/events/find/${text_info}`);
+                const response3 = await fetch(`api/events/find/${text_info}`);
                 if (!response3.ok) {
                     alert("查找失败！");
                     return;
